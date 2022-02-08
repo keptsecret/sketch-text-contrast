@@ -7,42 +7,9 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 
-from.fp16_util import convert_module_to_f16
+from .fp16_util import convert_module_to_f16
 from .bpe import get_encoder
 from .xf import LayerNorm, Transformer, convert_module_to_f16
-
-# params from glide encoder
-# text_ctx=128,
-# xf_width=512,
-# xf_layers=16,
-# xf_heads=8,
-# xf_final_ln=True,
-# xf_padding=True,
-
-# creating tokens
-# Create the text tokens to feed to the model.
-# tokens = model.tokenizer.encode(prompt)
-# tokens, mask = model.tokenizer.padded_tokens_and_mask(
-#     tokens, options['text_ctx']
-# )
-
-# # Create the classifier-free guidance tokens (empty)
-# full_batch_size = batch_size * 2
-# uncond_tokens, uncond_mask = model.tokenizer.padded_tokens_and_mask(
-#     [], options['text_ctx']
-# )
-
-# # Pack the tokens together into model kwargs.
-# model_kwargs = dict(
-#     tokens=th.tensor(
-#         [tokens] * batch_size + [uncond_tokens] * batch_size, device=device
-#     ),
-#     mask=th.tensor(
-#         [mask] * batch_size + [uncond_mask] * batch_size,
-#         dtype=th.bool,
-#         device=device,
-#     ),
-# )
 
 class TextEncoder(nn.Module):
     """
@@ -54,9 +21,10 @@ class TextEncoder(nn.Module):
     :param tokenizer: the text tokenizer for sampling/vocab size.
     """
 
-    def __init__(self, text_ctx, xf_width, xf_layers, xf_heads, xf_final_ln, xf_padding):
+    def __init__(self, model_channels, text_ctx, xf_width, xf_layers, xf_heads, xf_final_ln, xf_padding):
         super().__init__()
 
+        self.model_channels = model_channels
         self.text_ctx = text_ctx
         self.xf_width = xf_width
         self.xf_padding = xf_padding
@@ -95,7 +63,7 @@ class TextEncoder(nn.Module):
             if self.xf_ar:
                 self.unemb.to(th.float16)
 
-    def get_text_emb(self, tokens, mask):
+    def forward(self, tokens, mask):
         assert tokens is not None
 
         # if self.cache_text_emb and self.cache is not None:
