@@ -28,10 +28,10 @@ def main():
     )
 
     if load_weights:
-        # model.load_state_dict(th.load("./transformer_only.weights.pt"))
-        model.load_state_dict(load_checkpoint("transformer", device))
+        model.load_state_dict(th.load("./transformer_only_weights.pt"))
+        # model.load_state_dict(load_checkpoint("transformer", device))
 
-    print(model.state_dict)
+    print(model)
     """
     # Sampling parameters
     prompt = "an oil painting of a corgi"

@@ -5,7 +5,6 @@ https://github.com/openai/glide-text2im/blob/main/glide_text2im/text2im_model.py
 
 import torch as th
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .fp16_util import convert_module_to_f16
 from .bpe import get_encoder
@@ -85,11 +84,11 @@ class TextEncoder(nn.Module):
 
         outputs = dict(xf_proj=xf_proj, xf_out=xf_out)
 
-        if self.cache_text_emb:
-            self.cache = dict(
-                tokens=tokens,
-                xf_proj=xf_proj.detach(),
-                xf_out=xf_out.detach() if xf_out is not None else None,
-            )
+        # if self.cache_text_emb:
+        #     self.cache = dict(
+        #         tokens=tokens,
+        #         xf_proj=xf_proj.detach(),
+        #         xf_out=xf_out.detach() if xf_out is not None else None,
+        #     )
 
         return outputs
