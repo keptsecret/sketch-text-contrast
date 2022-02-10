@@ -3,6 +3,29 @@ import torch.nn as nn
 
 import torchvision.models as models
 
+class SketchEncoder(nn.Module):
+    
+    def __init__(self):
+        
+        super(SketchEncoder,self).__init__()
+        
+        self.vgg = models.vgg19(pretrained=True)
+
+        for params in self.vgg.parameters():
+            params.requires_grad = False
+        
+        model = [nn.Linear(49,64), nn.ReLU(), nn.Linear(64,64), nn.ReLU(), nn.Linear(64,128)]
+        self.sketch_mapper = nn.Sequential(*model)
+        
+    def forward(self,inputs):
+        
+        batch_size = inputs.shape[0]
+        
+        conv_feats = self.vgg.features(inputs)
+        avg_pool_feats = self.vgg.avgpool(conv_feats).view(batch_size, 512, -1)
+        
+        return self.sketch_mapper(avg_pool_feats)
+
 class ImageEncoder(nn.Module):
     def __init__(self, xf_width, text_ctx):
         super().__init__()

@@ -2,7 +2,7 @@ import torch as th
 import torch.nn as nn
 
 from sketch_text_contrast.text_encoder import TextEncoder
-from sketch_text_contrast.image_encoder import ImageEncoder
+from sketch_text_contrast.image_encoder import ImageEncoder, SketchEncoder
 from sketch_text_contrast.download import load_checkpoint
 
 num_channels = 192
@@ -51,11 +51,12 @@ def main():
     text_outputs = text_encoder(tokens, mask)
     xf_proj, xf_out = text_outputs["xf_proj"], text_outputs["xf_out"]
 
-    image_encoder = ImageEncoder(xf_width=xf_width, text_ctx=text_ctx)
-    img_out = image_encoder(th.normal(0, 1, size=(1, 3, 224, 224)))
+    # image_encoder = ImageEncoder(xf_width=xf_width, text_ctx=text_ctx)
+    image_encoder = SketchEncoder()
+    img_out = image_encoder(th.normal(0, 1, size=(batch_size, 3, 224, 224)))
 
     criterion = nn.CosineEmbeddingLoss(margin=0)
-    loss = criterion(xf_out, img_out, th.Tensor(1))
+    loss = criterion(xf_out[0], img_out[0], th.tensor([1]))
     print(loss)
 
 if __name__ == "__main__":

@@ -38,6 +38,9 @@ class TextEncoder(nn.Module):
             xf_heads,
         )
 
+        for params in self.transformer.parameters():
+            params.requires_grad = False
+
         if xf_final_ln:
             self.final_ln = LayerNorm(xf_width)
         else:
@@ -46,6 +49,12 @@ class TextEncoder(nn.Module):
         self.token_embedding = nn.Embedding(self.tokenizer.n_vocab, xf_width, device=device)
         self.positional_embedding = nn.Parameter(th.empty(text_ctx, xf_width, dtype=th.float32, device=device))
         self.transformer_proj = nn.Linear(xf_width, self.model_channels * 4)
+
+        for params in self.token_embedding.parameters():
+            params.requires_grad = False
+
+        for params in self.transformer_proj.parameters():
+            params.requires_grad = False
 
         if self.xf_padding:
             self.padding_embedding = nn.Parameter(
