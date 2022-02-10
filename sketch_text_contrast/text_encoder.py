@@ -5,6 +5,7 @@ https://github.com/openai/glide-text2im/blob/main/glide_text2im/text2im_model.py
 
 import torch as th
 import torch.nn as nn
+from zmq import device
 
 from .fp16_util import convert_module_to_f16
 from .bpe import get_encoder
@@ -20,13 +21,14 @@ class TextEncoder(nn.Module):
     :param tokenizer: the text tokenizer for sampling/vocab size.
     """
 
-    def __init__(self, model_channels, text_ctx, xf_width, xf_layers, xf_heads, xf_final_ln, xf_padding):
+    def __init__(self, model_channels, text_ctx, xf_width, xf_layers, xf_heads, xf_final_ln, xf_padding, device):
         super().__init__()
 
         self.model_channels = model_channels
         self.text_ctx = text_ctx
         self.xf_width = xf_width
         self.xf_padding = xf_padding
+        self.dtype = th.float32                 # not sure where is is originally defined
 
         self.tokenizer = get_encoder()
         self.transformer = Transformer(
@@ -41,8 +43,8 @@ class TextEncoder(nn.Module):
         else:
             self.final_ln = None
         
-        self.token_embedding = nn.Embedding(self.tokenizer.n_vocab, xf_width)
-        self.positional_embedding = nn.Parameter(th.empty(text_ctx, xf_width, dtype=th.float32))
+        self.token_embedding = nn.Embedding(self.tokenizer.n_vocab, xf_width, device=device)
+        self.positional_embedding = nn.Parameter(th.empty(text_ctx, xf_width, dtype=th.float32, device=device))
         self.transformer_proj = nn.Linear(xf_width, self.model_channels * 4)
 
         if self.xf_padding:
@@ -53,6 +55,7 @@ class TextEncoder(nn.Module):
     def convert_to_fp16(self):
         # super().convert_to_fp16()
         if self.xf_width:
+            self.dtype = th.float16
             self.transformer.apply(convert_module_to_f16)
             self.transformer_proj.to(th.float16)
             self.token_embedding.to(th.float16)
@@ -63,7 +66,7 @@ class TextEncoder(nn.Module):
                 self.unemb.to(th.float16)
 
     def forward(self, tokens, mask):
-        assert tokens is not None
+        # assert tokens is not None
 
         # if self.cache_text_emb and self.cache is not None:
         #     assert (
