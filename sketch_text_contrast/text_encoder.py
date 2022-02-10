@@ -5,7 +5,7 @@ https://github.com/openai/glide-text2im/blob/main/glide_text2im/text2im_model.py
 
 import torch as th
 import torch.nn as nn
-from zmq import device
+# from zmq import device
 
 from .fp16_util import convert_module_to_f16
 from .bpe import get_encoder
