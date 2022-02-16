@@ -36,6 +36,7 @@ class SketchDataset(Dataset):
                 for file_name in file_names:
                     if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
                         pairs[ann_dict['image_id']] = ann_dict['caption']
+                        file_names.remove(file_name)
 
         print("Loaded annotations")
         return pairs
@@ -56,6 +57,6 @@ class SketchDataset(Dataset):
         img = img.repeat(3, 1, 1).to(device=self.device)
         return img
 
-# sketches = SketchDataset("./test_dir", "captions_val2017.json")
+# sketches = SketchDataset("./test_dir", "captions_val2017.json", 'cpu')
 # for image, label in sketches:
 #     print(image.shape)
