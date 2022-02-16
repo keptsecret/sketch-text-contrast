@@ -51,8 +51,9 @@ class SketchDataset(Dataset):
         img = transforms.Pad(padding, fill=1)(img)
         img = img.unsqueeze(0)
         img = transforms.Resize(256)(img)
+        img = img.repeat(3, 1, 1)
         return img
 
 # sketches = SketchDataset("./test_dir", "captions_val2017.json")
 # for image, label in sketches:
-#     print(label)
+#     print(image.shape)
