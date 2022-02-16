@@ -7,10 +7,11 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 class SketchDataset(Dataset):
-    def __init__(self, img_dir : str, annotations_file : str):
+    def __init__(self, img_dir : str, annotations_file : str, device):
         self.img_dir = img_dir
         self.annotations_file = annotations_file
         self.id_pairs = self.load_annotations()
+        self.device = device
 
     def __len__(self):
         return len(self.id_pairs.keys())
@@ -36,6 +37,7 @@ class SketchDataset(Dataset):
                     if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
                         pairs[ann_dict['image_id']] = ann_dict['caption']
 
+        print("Loaded annotations")
         return pairs
 
     def load_image(self, file_path : str) -> th.Tensor:
@@ -51,7 +53,7 @@ class SketchDataset(Dataset):
         img = transforms.Pad(padding, fill=1)(img)
         img = img.unsqueeze(0)
         img = transforms.Resize(256)(img)
-        img = img.repeat(3, 1, 1)
+        img = img.repeat(3, 1, 1).to(device=self.device)
         return img
 
 # sketches = SketchDataset("./test_dir", "captions_val2017.json")
