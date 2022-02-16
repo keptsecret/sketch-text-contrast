@@ -39,8 +39,9 @@ class SketchDataset(Dataset):
 
             pairs = {}
             for (_, _, file_names) in os.walk(self.img_dir):
+                dir_size = len(file_names)
                 for i, file_name in enumerate(file_names):
-                    print(i, ":Looking for:", file_name, "in annotations", end="\r")
+                    print(f'{i+1:d}/{dir_size:d}: Looking for {file_name} in annotations', end="\r")
                     for ann_dict in ann_dict_list:
                         if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
                             pairs[ann_dict['image_id']] = ann_dict['caption']
