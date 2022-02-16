@@ -35,15 +35,16 @@ class SketchDataset(Dataset):
         else:
             with open(self.annotations_file) as f:
                 data = json.load(f)
+            ann_dict_list = data['annotations']
 
             pairs = {}
             for (_, _, file_names) in os.walk(self.img_dir):
                 for file_name in file_names:
                     print("Looking for:", file_name, "in annotations")
-                    for ann_dict in data['annotations']:
+                    for ann_dict in ann_dict_list:
                         if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
                             pairs[ann_dict['image_id']] = ann_dict['caption']
-                            del ann_dict['image_id']
+                            ann_dict_list.remove(ann_dict)
                             break
 
             if self.save_annotations:
