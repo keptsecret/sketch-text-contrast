@@ -70,6 +70,6 @@ class SketchDataset(Dataset):
         img = img.repeat(3, 1, 1).to(device=self.device)
         return img
 
-sketches = SketchDataset("./test_dir", "captions_val2017.json", 'cpu')
-for image, label in sketches:
-    print(image.shape)
+# sketches = SketchDataset("./test_dir", "captions_val2017.json", 'cpu')
+# for image, label in sketches:
+#     print(image.shape)
