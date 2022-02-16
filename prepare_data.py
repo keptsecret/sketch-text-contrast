@@ -38,11 +38,13 @@ class SketchDataset(Dataset):
 
             pairs = {}
             for (_, _, file_names) in os.walk(self.img_dir):
-                for ann_dict in data['annotations']:
-                    for file_name in file_names:
+                for file_name in file_names:
+                    print("Looking for:", file_name, "in annotations")
+                    for ann_dict in data['annotations']:
                         if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
                             pairs[ann_dict['image_id']] = ann_dict['caption']
-                            file_names.remove(file_name)
+                            del ann_dict['image_id']
+                            break
 
             if self.save_annotations:
                 save_as_json = json.dumps(pairs)
@@ -68,6 +70,6 @@ class SketchDataset(Dataset):
         img = img.repeat(3, 1, 1).to(device=self.device)
         return img
 
-# sketches = SketchDataset("./test_dir", "captions_val2017.json", 'cpu', preloaded_annotations="./pairs.json")
-# for image, label in sketches:
-#     print(image.shape)
+sketches = SketchDataset("./test_dir", "captions_val2017.json", 'cpu')
+for image, label in sketches:
+    print(image.shape)

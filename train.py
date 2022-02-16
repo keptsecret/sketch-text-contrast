@@ -45,7 +45,10 @@ def main():
     print("Setting up data")
     BATCH_SIZE = 64
     EPOCHS = 5
-    trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour", "/srv/share/psangkloy3/coco/annotations/captions_train2017.json", device)
+    trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
+        "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
+        device,
+        save_annotations=True)
     trainloader = DataLoader(trainset, batch_size=BATCH_SIZE)
 
     print("Setting up models")    
