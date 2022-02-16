@@ -39,8 +39,8 @@ class SketchDataset(Dataset):
 
             pairs = {}
             for (_, _, file_names) in os.walk(self.img_dir):
-                for file_name in file_names:
-                    print("Looking for:", file_name, "in annotations")
+                for i, file_name in enumerate(file_names):
+                    print(i, ":Looking for:", file_name, "in annotations", end="\r")
                     for ann_dict in ann_dict_list:
                         if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
                             pairs[ann_dict['image_id']] = ann_dict['caption']
@@ -52,6 +52,7 @@ class SketchDataset(Dataset):
                 with open("pairs.json", "w") as f:
                     f.write(save_as_json)
 
+        print("\n")
         print("Loaded annotations")
         return pairs
 
