@@ -15,6 +15,29 @@ xf_padding = True
 
 load_weights = True
 
+"""
+Tentative, not sure how data works yet
+"""
+def train_step(text_encoder, image_encoder, trainloader, criterion, optimizer, epoch):
+    running_loss = 0.0
+    for (image, label), corr in trainloader:
+        
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        text_encoding = text_encoder(label)
+        sketch_encoding = image_encoder(image)
+        loss = criterion(sketch_encoding, text_encoding, corr)
+        loss.backward()
+        optimizer.step()
+
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+            running_loss = 0.0
+
 def main():
     has_cuda = th.cuda.is_available()
     device = th.device('cpu' if not has_cuda else 'cuda')
@@ -51,12 +74,15 @@ def main():
     text_outputs = text_encoder(tokens, mask)
     xf_proj, xf_out = text_outputs["xf_proj"], text_outputs["xf_out"]
 
-    # image_encoder = ImageEncoder(xf_width=xf_width, text_ctx=text_ctx)
+    image_encoder = ImageEncoder(xf_width=xf_width, text_ctx=text_ctx)
     image_encoder = SketchEncoder()
     img_out = image_encoder(th.normal(0, 1, size=(batch_size, 3, 224, 224)))
 
     criterion = nn.CosineEmbeddingLoss(margin=0)
+    # criterion = nn.TripletMarginLoss()
+    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-4, weight_decay=1e-5)
     loss = criterion(xf_out[0], img_out[0], th.tensor([1]))
+    loss.backward()
     print(loss)
 
 if __name__ == "__main__":

@@ -1,2 +1,3 @@
 **/__pycache__
 transformer_only_weights.pt
+captions_val2017.json
