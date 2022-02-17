@@ -38,15 +38,15 @@ class SketchDataset(Dataset):
             ann_dict_list = data['annotations']
 
             pairs = {}
-            for (_, _, file_names) in os.walk(self.img_dir):
-                dir_size = len(file_names)
-                for i, file_name in enumerate(file_names):
-                    print(f'{i+1:d}/{dir_size:d}: Looking for {file_name} in annotations', end="\r")
-                    for ann_dict in ann_dict_list:
-                        if ann_dict['image_id'] == int(file_name.strip("0").strip(".png")):
-                            pairs[ann_dict['image_id']] = ann_dict['caption']
-                            ann_dict_list.remove(ann_dict)
-                            break
+            filenames = [f for f in os.listdir(self.img_dir) if os.path.isfile(f)]
+            dir_size = len(filenames)
+            for i, filename in enumerate(filenames):
+                print(f'{i+1:d}/{dir_size:d}: Looking for {filename} in annotations', end="\r")
+                for ann_dict in ann_dict_list:
+                    if ann_dict['image_id'] == int(filename.strip("0").strip(".png")):
+                        pairs[ann_dict['image_id']] = ann_dict['caption']
+                        ann_dict_list.remove(ann_dict)
+                        break
 
             if self.save_annotations:
                 save_as_json = json.dumps(pairs)
