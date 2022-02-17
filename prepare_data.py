@@ -38,7 +38,7 @@ class SketchDataset(Dataset):
             ann_dict_list = data['annotations']
 
             pairs = {}
-            filenames = [f for f in os.listdir(self.img_dir) if os.path.isfile(f)]
+            filenames = [f for f in os.listdir(self.img_dir) if os.path.isfile(os.path.join(self.img_dir, f))]
             dir_size = len(filenames)
             for i, filename in enumerate(filenames):
                 print(f'{i+1:d}/{dir_size:d}: Looking for {filename} in annotations', end="\r")
