@@ -49,7 +49,7 @@ def main():
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
         preloaded_annotations="./train_pairs.json")
-    trainloader = DataLoader(trainset, batch_size=BATCH_SIZE)
+    trainloader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True)
 
     print("Setting up models")    
     text_encoder = TextEncoder(
@@ -108,6 +108,9 @@ def main():
                 running_loss = 0.0
 
     print('Finished Training')
+
+    print('Saving model...')
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights.pt")
 
 if __name__ == "__main__":
     main()
