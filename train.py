@@ -44,11 +44,11 @@ def main():
 
     print("Setting up data")
     BATCH_SIZE = 64
-    EPOCHS = 5
+    EPOCHS = 10
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
-        save_annotations=True)
+        preloaded_annotations="./train_pairs.json")
     trainloader = DataLoader(trainset, batch_size=BATCH_SIZE)
 
     print("Setting up models")    
@@ -70,7 +70,7 @@ def main():
 
     criterion = nn.CosineEmbeddingLoss(margin=0)
     # criterion = nn.TripletMarginLoss()
-    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-4, weight_decay=1e-5)
+    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-4)       # (1e-4, 1e-5) seemed okay but slow
 
     for epoch in range(EPOCHS):  # loop over the dataset multiple times
 
@@ -103,8 +103,8 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if i % 10 == 9:    # print every 10 mini-batches
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 10:.3f}')
+            if i % 200 == 199:    # print every 200 mini-batches
+                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
                 running_loss = 0.0
 
     print('Finished Training')
