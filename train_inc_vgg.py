@@ -86,8 +86,8 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if i % 100 == 99:    # print every 100 mini-batches
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 100:.3f}')
+            if i % 200 == 199:    # print every 100 mini-batches
+                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
                 running_loss = 0.0
         
         th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_tuned_{epoch + 1}.pt')
