@@ -43,7 +43,7 @@ def main():
     th.set_default_tensor_type('torch.cuda.FloatTensor')
 
     print("Setting up data")
-    BATCH_SIZE = 64
+    BATCH_SIZE = 128
     EPOCHS = 10
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
@@ -103,8 +103,8 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if i % 200 == 199:    # print every 200 mini-batches
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
+            if i % 100 == 99:    # print every 100 mini-batches
+                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 100:.3f}')
                 running_loss = 0.0
 
     print('Finished Training')
