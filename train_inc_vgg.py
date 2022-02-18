@@ -17,26 +17,6 @@ xf_padding = True
 
 load_weights = True
 
-# def train_step(text_encoder, image_encoder, trainloader, criterion, optimizer, epoch):
-#     running_loss = 0.0
-#     for (image, label), corr in trainloader:
-        
-#         # zero the parameter gradients
-#         optimizer.zero_grad()
-
-#         # forward + backward + optimize
-#         text_encoding = text_encoder(label)
-#         sketch_encoding = image_encoder(image)
-#         loss = criterion(sketch_encoding, text_encoding, corr)
-#         loss.backward()
-#         optimizer.step()
-
-#         # print statistics
-#         running_loss += loss.item()
-#         if i % 2000 == 1999:    # print every 2000 mini-batches
-#             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-#             running_loss = 0.0
-
 def main():
     has_cuda = th.cuda.is_available()
     device = th.device('cpu' if not has_cuda else 'cuda')
@@ -44,7 +24,7 @@ def main():
 
     print("Setting up data")
     BATCH_SIZE = 64
-    EPOCHS = 8
+    EPOCHS = 10
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
@@ -67,10 +47,13 @@ def main():
         text_encoder.load_state_dict(th.load("./transformer_only_weights.pt"))
 
     image_encoder = SketchEncoder()
+    image_encoder.load_state_dict(th.load("./sketch_encoder_weights.pt"))
+    for params in image_encoder.vgg.parameters():
+        params.requires_grad = True
 
     criterion = nn.CosineEmbeddingLoss(margin=0)
     # criterion = nn.TripletMarginLoss()
-    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-4)       # (1e-4, 1e-5) seemed okay but slow
+    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-4, weight_decay=1e-5)       # (1e-4, 1e-5) seemed okay but slow
 
     for epoch in range(EPOCHS):  # loop over the dataset multiple times
 
@@ -107,12 +90,12 @@ def main():
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 100:.3f}')
                 running_loss = 0.0
         
-        th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_{epoch + 1}.pt')
+        th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_tuned_{epoch + 1}.pt')
 
     print('Finished Training')
 
     print('Saving model...')
-    th.save(image_encoder.state_dict(), "./sketch_encoder_weights.pt")
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_tuned.pt")
 
 if __name__ == "__main__":
     main()
