@@ -70,7 +70,7 @@ def main():
 
     criterion = nn.CosineEmbeddingLoss(margin=0)
     # criterion = nn.TripletMarginLoss()
-    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-4)       # (1e-4, 1e-5) seemed okay but slow
+    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-2, weight_decay=1e-4)       # (1e-4, 1e-5) seemed okay but slow
 
     for epoch in range(EPOCHS):  # loop over the dataset multiple times
 
