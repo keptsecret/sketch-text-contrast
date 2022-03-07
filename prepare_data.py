@@ -7,13 +7,14 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 class SketchDataset(Dataset):
-    def __init__(self, img_dir : str, annotations_file : str, device, negatives=False, preloaded_annotations=None, save_annotations=False):
+    def __init__(self, img_dir : str, annotations_file : str, device, negatives=False, triplet=False, preloaded_annotations=None, save_annotations=False):
         self.img_dir = img_dir
         self.annotations_file = annotations_file
         self.preloaded_annotations = preloaded_annotations
         self.save_annotations = save_annotations
         self.id_pairs = self.load_annotations()
         self.negatives = negatives
+        self.triplet = triplet
         self.device = device
 
     def __len__(self):
@@ -23,13 +24,17 @@ class SketchDataset(Dataset):
         id = list(self.id_pairs.keys())[index]
         image_path = os.path.join(self.img_dir, '{0:012d}.png'.format(int(id)))
         image = self.load_image(image_path)
-        if self.negatives:
+        pos_label = self.id_pairs[id]
+        if self.negatives or self.triplet:
             rand_idx = None
             while rand_idx == None or rand_idx == id:
                 rand_idx = th.randint(self.__len__(), size=(1,))
             id = list(self.id_pairs.keys())[rand_idx.item()]
         label = self.id_pairs[id]
-        return image, label
+        if self.triplet:
+            return image, pos_label, label
+        else:
+            return image, label
 
     def load_annotations(self) -> dict:
         """

@@ -20,7 +20,7 @@ load_weights = True
 # def train_step(text_encoder, image_encoder, trainloader, criterion, optimizer, epoch):
 #     running_loss = 0.0
 #     for (image, label), corr in trainloader:
-        
+
 #         # zero the parameter gradients
 #         optimizer.zero_grad()
 
@@ -44,14 +44,21 @@ def main():
 
     print("Setting up data")
     BATCH_SIZE = 64
-    EPOCHS = 8
-    trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
+    EPOCHS = 15
+    pos_trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
         preloaded_annotations="./train_pairs.json")
-    trainloader = DataLoader(trainset, batch_size=BATCH_SIZE)
+    pos_trainloader = DataLoader(pos_trainset, batch_size=BATCH_SIZE)
 
-    print("Setting up models")    
+    neg_trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
+        "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
+        device,
+        negatives=True,
+        preloaded_annotations="./train_pairs.json")
+    neg_trainloader = DataLoader(neg_trainset, batch_size=BATCH_SIZE)
+
+    print("Setting up models")
     text_encoder = TextEncoder(
         model_channels=num_channels,
         text_ctx=text_ctx,
@@ -68,14 +75,21 @@ def main():
 
     image_encoder = SketchEncoder()
 
-    criterion = nn.CosineEmbeddingLoss(margin=0)
+    #criterion = nn.CosineEmbeddingLoss(margin=0.5)
     # criterion = nn.TripletMarginLoss()
-    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-4)       # (1e-4, 1e-5) seemed okay but slow
+    dist = nn.PairwiseDistance(p=1, eps=1e-6)
+    criterion = nn.HingeEmbeddingLoss(margin=1.0)
+    fast_optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-5)
+    slow_optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-4, weight_decay=1e-5)       # (1e-4, 1e-5) seemed okay but slow
 
     for epoch in range(EPOCHS):  # loop over the dataset multiple times
+        if EPOCHS < 8:
+            optimizer = fast_optimizer
+        else:
+            optimizer = slow_optimizer
 
         running_loss = 0.0
-        for i, data in enumerate(trainloader, 0):
+        for i, data in enumerate(pos_trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             images, labels = data
 
@@ -96,17 +110,54 @@ def main():
             tokens = th.stack(tokens_list)
 
             sketch_outputs = image_encoder(images)
-            
-            loss = criterion(th.flatten(sketch_outputs, start_dim=1), th.flatten(tokens, start_dim=1), th.tensor([1]))
+
+            outputs = dist(th.flatten(sketch_outputs, start_dim=1), th.flatten(tokens, start_dim=1))
+            #loss = criterion(th.flatten(sketch_outputs, start_dim=1), th.flatten(tokens, start_dim=1), th.tensor([1]))
+            loss = criterion(outputs, th.ones_like(outputs))
             loss.backward()
             optimizer.step()
 
             # print statistics
             running_loss += loss.item()
             if i % 200 == 199:    # print every 100 mini-batches
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
+                print(f'pos:[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.5f}')
                 running_loss = 0.0
-        
+
+        running_loss = 0.0
+        for i, data in enumerate(neg_trainloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            images, labels = data
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            tokens_list = []
+            for label in labels:
+                tokens = text_encoder.tokenizer.encode(label)
+                tokens, mask = text_encoder.tokenizer.padded_tokens_and_mask(tokens, text_encoder.text_ctx)
+                tokens = th.tensor([tokens], device=device)
+                mask = th.tensor([mask], dtype=th.bool, device=device)
+
+                text_outputs = text_encoder(tokens, mask)
+                xf_out = text_outputs["xf_out"]
+                tokens_list.append(xf_out)
+
+            tokens = th.stack(tokens_list)
+
+            sketch_outputs = image_encoder(images)
+
+            outputs = dist(th.flatten(sketch_outputs, start_dim=1), th.flatten(tokens, start_dim=1))
+            #loss = criterion(th.flatten(sketch_outputs, start_dim=1), th.flatten(tokens, start_dim=1), th.tensor([-1]))
+            loss = criterion(outputs, th.ones_like(outputs) * -1)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            if i % 200 == 199:    # print every 100 mini-batches
+                print(f'neg:[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.5f}')
+                running_loss = 0.0
+
         th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_{epoch + 1}.pt')
 
     print('Finished Training')
