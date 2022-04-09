@@ -4,32 +4,37 @@ import torch.nn as nn
 import torchvision.models as models
 
 class SketchEncoder(nn.Module):
-    
-    def __init__(self):
-        
-        super(SketchEncoder,self).__init__()
-        
-        self.vgg = models.vgg19(pretrained=True)
 
-        for params in self.vgg.parameters():
-            params.requires_grad = False
-        
+    def __init__(self, resnet=False, trainable=False):
+
+        super(SketchEncoder,self).__init__()
+        self.mode = resnet
+
+	if self.mode:
+            self.conv = models.resnet34(pretrained=True)
+        else:
+            self.conv = models.vgg19(pretrained=True)
+
+        if trainable:
+            for params in self.conv.parameters():
+                params.requires_grad = False
+
         model = [nn.Linear(49,64), nn.ReLU(), nn.Linear(64,64), nn.ReLU(), nn.Linear(64,128)]
         self.sketch_mapper = nn.Sequential(*model)
-        
+
     def forward(self,inputs):
-        
+
         batch_size = inputs.shape[0]
-        
-        conv_feats = self.vgg.features(inputs)
-        avg_pool_feats = self.vgg.avgpool(conv_feats).view(batch_size, 512, -1)
-        
+
+        conv_feats = self.conv.features(inputs)
+        avg_pool_feats = self.conv.avgpool(conv_feats).view(batch_size, 512, -1)
+
         return self.sketch_mapper(avg_pool_feats)
 
 class ImageEncoder(nn.Module):
     def __init__(self, xf_width, text_ctx):
         super().__init__()
-        
+
         vgg16 = models.vgg16_bn(pretrained=True)
         # self.conv_layers = vgg16.features
         # self.avg_pool = vgg16.avgpool

@@ -1,3 +1,6 @@
+# This model is now trained on adjusted and scaled values from the text encoder to values between 0-1
+# Values returned from the sketch encoder have to be adjusted by * (8 + 5.1) - 5.1
+
 import torch as th
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -25,7 +28,7 @@ def main():
 
     print("Setting up data")
     BATCH_SIZE = 32
-    EPOCHS = 1000
+    EPOCHS = 100
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
@@ -47,15 +50,12 @@ def main():
     if load_weights:
         text_encoder.load_state_dict(th.load("./transformer_only_weights.pt"))
 
-    image_encoder = SketchEncoder()
-    image_encoder.load_state_dict(th.load("./sketch_encoder_weights_f100mse_noh.pt"))
-    for params in image_encoder.vgg.parameters():
-        params.requires_grad = True
+    image_encoder = SketchEncoder(resnet=True, trainable=True)
+    #image_encoder.load_state_dict(th.load("./sketch_encoder_weights_f100mse_noh.pt"))
 
     criterion = nn.MSELoss()
-    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=1e-7, momentum=0.9)
-    #optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3)
-    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=800, gamma=0.1)
+    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-2, weight_decay=5e-4, momentum=0.9)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 
     print("Starting training...")
     loss_values = []
@@ -81,7 +81,8 @@ def main():
                 tokens_list.append(xf_out)
 
             tokens = th.stack(tokens_list)
-            tokens = th.squeeze(tokens, dim=1)
+            # squeeze and scale encodings down to between 0-1
+            tokens = (th.squeeze(tokens, dim=1) + 5.1) / (8.0+5.1)
 
             sketch_outputs = image_encoder(images)
 
