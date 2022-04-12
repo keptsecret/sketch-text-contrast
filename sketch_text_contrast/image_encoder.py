@@ -10,23 +10,35 @@ class SketchEncoder(nn.Module):
         super(SketchEncoder,self).__init__()
         self.mode = resnet
 
-	if self.mode:
+        if self.mode:
             self.conv = models.resnet34(pretrained=True)
+            model = [nn.Linear(1,32), nn.ReLU(), nn.Linear(32,64), nn.ReLU(), nn.Linear(64,128)]
         else:
             self.conv = models.vgg19(pretrained=True)
+            model = [nn.Linear(49,64), nn.ReLU(), nn.Linear(64,64), nn.ReLU(), nn.Linear(64,128)]
 
         if trainable:
             for params in self.conv.parameters():
                 params.requires_grad = False
 
-        model = [nn.Linear(49,64), nn.ReLU(), nn.Linear(64,64), nn.ReLU(), nn.Linear(64,128)]
         self.sketch_mapper = nn.Sequential(*model)
 
     def forward(self,inputs):
 
         batch_size = inputs.shape[0]
 
-        conv_feats = self.conv.features(inputs)
+        if self.mode:
+            x = self.conv.conv1(inputs)
+            x = self.conv.bn1(x)
+            x = self.conv.relu(x)
+            x = self.conv.maxpool(x)
+            x = self.conv.layer1(x)
+            x = self.conv.layer2(x)
+            x = self.conv.layer3(x)
+            conv_feats = self.conv.layer4(x)
+        else:
+            conv_feats = self.conv.features(inputs)
+
         avg_pool_feats = self.conv.avgpool(conv_feats).view(batch_size, 512, -1)
 
         return self.sketch_mapper(avg_pool_feats)

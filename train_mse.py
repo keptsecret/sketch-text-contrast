@@ -28,7 +28,7 @@ def main():
 
     print("Setting up data")
     BATCH_SIZE = 32
-    EPOCHS = 100
+    EPOCHS = 200
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
@@ -54,8 +54,8 @@ def main():
     #image_encoder.load_state_dict(th.load("./sketch_encoder_weights_f100mse_noh.pt"))
 
     criterion = nn.MSELoss()
-    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-2, weight_decay=5e-4, momentum=0.9)
-    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
 
     print("Starting training...")
     loss_values = []
