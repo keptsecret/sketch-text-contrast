@@ -2,6 +2,7 @@ import torch as th
 import torch.nn as nn
 
 import torchvision.models as models
+from vqvae import Encoder, Decoder, VectorQuantizer
 
 class SketchEncoder(nn.Module):
 
@@ -42,6 +43,49 @@ class SketchEncoder(nn.Module):
         avg_pool_feats = self.conv.avgpool(conv_feats).view(batch_size, 512, -1)
 
         return self.sketch_mapper(avg_pool_feats)
+
+class VQSketchEncoder(nn.Module):
+    def __init__(self,
+                 ddconfig,
+                 n_embed,
+                 embed_dim,
+                 ckpt_path=None,
+                 remap=None,
+                 sane_index_shape=False,  # tell vector quantizer to return indices as bhw
+                 ):
+        super().__init__()
+        
+        self.encoder = Encoder(**ddconfig)
+        self.avg_pool = nn.AdaptiveAvgPool2d((7, 7))
+        self.sketch_mapper = nn.Sequential(
+                                            nn.Linear(49, 64),
+                                            nn.ReLU(),
+                                            nn.Linear(64, 64),
+                                            nn.ReLU(),
+                                            nn.Linear(64, 128)
+                                            )
+        self.quantize = VectorQuantizer(n_embed, embed_dim, beta=0.25,
+                                        remap=remap, sane_index_shape=sane_index_shape)
+        self.quant_conv = th.nn.Conv2d(ddconfig["z_channels"], embed_dim, 1)
+        self.post_quant_conv = th.nn.Conv2d(embed_dim, ddconfig["z_channels"], 1)
+
+        if ckpt_path is not None:
+            self.init_from_ckpt(ckpt_path)
+
+    def init_from_ckpt(self, path):
+        sd = th.load(path)
+        self.load_state_dict(sd, strict=False)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        h = self.encoder(x)
+        h = self.quant_conv(h)
+        quant, emb_loss, info = self.quantize(h)
+
+        quant = self.post_quant_conv(quant)
+        quant = self.avg_pool(quant).view(batch_size, 512, -1)
+        dec = self.sketch_mapper(quant)
+        return dec, emb_loss, info
 
 class ImageEncoder(nn.Module):
     def __init__(self, xf_width, text_ctx):
