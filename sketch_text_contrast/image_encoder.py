@@ -2,7 +2,7 @@ import torch as th
 import torch.nn as nn
 
 import torchvision.models as models
-from vqvae import Encoder, Decoder, VectorQuantizer
+from .vqvae import Encoder, Decoder, VectorQuantizer
 
 class SketchEncoder(nn.Module):
 
@@ -54,11 +54,13 @@ class VQSketchEncoder(nn.Module):
                  sane_index_shape=False,  # tell vector quantizer to return indices as bhw
                  ):
         super().__init__()
-        
+
         self.encoder = Encoder(**ddconfig)
-        self.avg_pool = nn.AdaptiveAvgPool2d((7, 7))
+        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
         self.sketch_mapper = nn.Sequential(
-                                            nn.Linear(49, 64),
+                                            nn.Linear(1, 32),
+                                            nn.ReLU(),
+                                            nn.Linear(32, 64),
                                             nn.ReLU(),
                                             nn.Linear(64, 64),
                                             nn.ReLU(),
@@ -68,6 +70,7 @@ class VQSketchEncoder(nn.Module):
                                         remap=remap, sane_index_shape=sane_index_shape)
         self.quant_conv = th.nn.Conv2d(ddconfig["z_channels"], embed_dim, 1)
         self.post_quant_conv = th.nn.Conv2d(embed_dim, ddconfig["z_channels"], 1)
+        self.up_post_conv = th.nn.Conv2d(ddconfig["z_channels"], 512, 1)
 
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path)
@@ -83,6 +86,7 @@ class VQSketchEncoder(nn.Module):
         quant, emb_loss, info = self.quantize(h)
 
         quant = self.post_quant_conv(quant)
+        quant = self.up_post_conv(quant)
         quant = self.avg_pool(quant).view(batch_size, 512, -1)
         dec = self.sketch_mapper(quant)
         return dec, emb_loss, info

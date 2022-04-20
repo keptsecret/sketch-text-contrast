@@ -20,8 +20,8 @@ xf_final_ln = True
 xf_padding = True
 
 # vq sketch encoder params
-embed_dim: 256
-n_embed: 16384
+embed_dim = 256
+n_embed = 16384
 ddconfig = {
     "double_z": False,
     "z_channels": 256,
@@ -43,7 +43,7 @@ def main():
     th.set_default_tensor_type('torch.cuda.FloatTensor')
 
     print("Setting up data")
-    BATCH_SIZE = 32
+    BATCH_SIZE = 8
     EPOCHS = 200
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
@@ -69,8 +69,8 @@ def main():
     image_encoder = VQSketchEncoder(ddconfig=ddconfig, n_embed=n_embed, embed_dim=embed_dim, ckpt_path="vq_encoder_weights.pt")
 
     criterion = nn.MSELoss()
-    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
-    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-2, weight_decay=5e-4, momentum=0.9)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
     print("Starting training...")
     loss_values = []
@@ -99,7 +99,7 @@ def main():
             # squeeze and scale encodings down to between 0-1
             tokens = (th.squeeze(tokens, dim=1) + 5.1) / (8.0+5.1)
 
-            sketch_outputs = image_encoder(images)
+            sketch_outputs, _, _ = image_encoder(images)
 
             loss = criterion(sketch_outputs, tokens)
             loss.backward()
