@@ -43,8 +43,8 @@ def main():
     th.set_default_tensor_type('torch.cuda.FloatTensor')
 
     print("Setting up data")
-    BATCH_SIZE = 8
-    EPOCHS = 200
+    BATCH_SIZE = 10
+    EPOCHS = 125
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
@@ -69,8 +69,8 @@ def main():
     image_encoder = VQSketchEncoder(ddconfig=ddconfig, n_embed=n_embed, embed_dim=embed_dim, ckpt_path="vq_encoder_weights.pt")
 
     criterion = nn.MSELoss()
-    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-2, weight_decay=5e-4, momentum=0.9)
-    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
+    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.1)
 
     print("Starting training...")
     loss_values = []
@@ -97,7 +97,8 @@ def main():
 
             tokens = th.stack(tokens_list)
             # squeeze and scale encodings down to between 0-1
-            tokens = (th.squeeze(tokens, dim=1) + 5.1) / (8.0+5.1)
+            #tokens = (th.squeeze(tokens, dim=1) + 5.1) / (8.0+5.1)
+            tokens = th.squeeze(tokens, dim=1)
 
             sketch_outputs, _, _ = image_encoder(images)
 
@@ -113,14 +114,14 @@ def main():
                 with open('loss_history.json', 'w') as f:
                     json.dump(loss_values, f, indent=2)
                 running_loss = 0.0
-                th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_f100mse_noh_{epoch + 1}.pt')
+                th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_vq_f100mse_noh_{epoch + 1}.pt')
 
         scheduler.step()
 
     print('Finished Training')
 
     print('Saving model...')
-    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_f100mse_noh.pt")
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_vq_f100mse_noh.pt")
 
 if __name__ == "__main__":
     main()

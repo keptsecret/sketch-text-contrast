@@ -56,15 +56,13 @@ class VQSketchEncoder(nn.Module):
         super().__init__()
 
         self.encoder = Encoder(**ddconfig)
-        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.avg_pool = nn.AdaptiveAvgPool2d((16, 16))
         self.sketch_mapper = nn.Sequential(
-                                            nn.Linear(1, 32),
+                                            nn.Linear(256, 256),
                                             nn.ReLU(),
-                                            nn.Linear(32, 64),
+                                            nn.Linear(256, 128),
                                             nn.ReLU(),
-                                            nn.Linear(64, 64),
-                                            nn.ReLU(),
-                                            nn.Linear(64, 128)
+                                            nn.Linear(128, 128)
                                             )
         self.quantize = VectorQuantizer(n_embed, embed_dim, beta=0.25,
                                         remap=remap, sane_index_shape=sane_index_shape)
