@@ -52,9 +52,8 @@ class SketchEncoder(nn.Module):
                         nn.ReLU(),
                         nn.Linear(128, 128)]
 
-        if all_trainable:
-            for params in self.conv.parameters():
-                params.requires_grad = True
+        for params in self.conv.parameters():
+            params.requires_grad = all_trainable
 
         self.refine_convs = nn.Sequential(*more_conv)
         self.sketch_mapper = nn.Sequential(*linear)
