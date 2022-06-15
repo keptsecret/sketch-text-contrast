@@ -26,7 +26,7 @@ def main():
     th.set_default_tensor_type('torch.cuda.FloatTensor')
 
     print("Setting up data")
-    BATCH_SIZE = 128
+    BATCH_SIZE = 100
     EPOCHS = 200
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
@@ -54,8 +54,8 @@ def main():
 
     criterion = nn.MSELoss()
     #optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
-    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-5)
-    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=75, gamma=0.1)
+    optimizer = th.optim.Adam(image_encoder.parameters(), lr=2e-3, weight_decay=1e-5)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.5)
 
     print("Starting training...")
     loss_values = []
