@@ -13,7 +13,8 @@ class SketchEncoder(nn.Module):
 
         if self.mode:
             self.conv = models.resnet34(pretrained=True)
-            
+            self.avgpool = self.conv.avgpool
+
             # TODO: set to temporary empty refine list
             more_conv = []
 
@@ -24,25 +25,32 @@ class SketchEncoder(nn.Module):
                         nn.Linear(64,128)]
         else:
             # take layers up to block4_conv1, instead
-            vgg = models.vgg19(pretrained=True).features
-            self.conv = vgg[:21]
+            vgg = models.vgg19(pretrained=True)
+            self.conv = vgg.features[:21]
+            self.avgpool = vgg.avgpool
 
             more_conv = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.ReLU(inplace=True),
-                            nn.MaxPool2d(kernel_size=2, stride=2),
-                            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
-                            nn.ReLU(inplace=True),
+                            #nn.MaxPool2d(kernel_size=2, stride=2),
+                            #nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
+                            #nn.ReLU(inplace=True),
                             nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.ReLU(inplace=True),
                             nn.MaxPool2d(kernel_size=2, stride=2)]
 
-            linear = [nn.Linear(49,64),
-                        nn.ReLU(inplace=True),
-                        nn.Linear(64,64),
-                        nn.ReLU(inplace=True),
-                        nn.Linear(64,128)]
+            #linear = [nn.Linear(49,64),
+            #            nn.ReLU(inplace=True),
+            #            nn.Linear(64,64),
+            #            nn.ReLU(inplace=True),
+            #            nn.Linear(64,128)]
+
+            linear = [nn.Linear(256, 256),
+                        nn.ReLU(),
+                        nn.Linear(256, 128),
+                        nn.ReLU(),
+                        nn.Linear(128, 128)]
 
         if all_trainable:
             for params in self.conv.parameters():
@@ -68,7 +76,10 @@ class SketchEncoder(nn.Module):
             x = self.conv(inputs)
             conv_feats = self.refine_convs(x)
 
-        avg_pool_feats = self.conv.avgpool(conv_feats).view(batch_size, 512, -1)
+        #avg_pool_feats = self.avgpool(conv_feats).view(batch_size, 512, -1)
+        avg_pool_feats = conv_feats.view(batch_size, 512, -1)
+        std, mean = th.std_mean(avg_pool_feats, dim=(1,2), unbiased=False, keepdim=True)
+        avg_pool_feats = (avg_pool_feats - mean) / std
         outputs = self.sketch_mapper(avg_pool_feats)
 
         return outputs
