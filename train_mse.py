@@ -27,7 +27,7 @@ def main():
     th.set_default_tensor_type('torch.cuda.FloatTensor')
 
     print("Setting up data")
-    BATCH_SIZE = 32
+    BATCH_SIZE = 100
     EPOCHS = 200
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
@@ -55,7 +55,7 @@ def main():
 
     criterion = nn.MSELoss()
     optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
-    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=75, gamma=0.1)
 
     print("Starting training...")
     loss_values = []
@@ -92,7 +92,7 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if i % 3 == 2:    # print every 200 mini-batches
+            if True: #i % 3 == 2:    # print every 200 mini-batches
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 3:.5f}')
                 loss_values.append(running_loss / 3)
                 with open('loss_history.json', 'w') as f:
@@ -105,7 +105,7 @@ def main():
     print('Finished Training')
 
     print('Saving model...')
-    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_f100mse_noh.pt")
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_resnet_f100mse_noh.pt")
 
 if __name__ == "__main__":
     main()

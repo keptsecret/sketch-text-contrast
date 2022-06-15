@@ -1,6 +1,7 @@
 import torch as th
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import json
 
 from prepare_data import SketchDataset
 from sketch_text_contrast.text_encoder import TextEncoder
@@ -17,26 +18,6 @@ xf_padding = True
 
 load_weights = True
 
-# def train_step(text_encoder, image_encoder, trainloader, criterion, optimizer, epoch):
-#     running_loss = 0.0
-#     for (image, label), corr in trainloader:
-
-#         # zero the parameter gradients
-#         optimizer.zero_grad()
-
-#         # forward + backward + optimize
-#         text_encoding = text_encoder(label)
-#         sketch_encoding = image_encoder(image)
-#         loss = criterion(sketch_encoding, text_encoding, corr)
-#         loss.backward()
-#         optimizer.step()
-
-#         # print statistics
-#         running_loss += loss.item()
-#         if i % 2000 == 1999:    # print every 2000 mini-batches
-#             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-#             running_loss = 0.0
-
 def main():
     has_cuda = th.cuda.is_available()
     device = th.device('cpu' if not has_cuda else 'cuda')
@@ -44,13 +25,14 @@ def main():
 
     print("Setting up data")
     BATCH_SIZE = 32
-    EPOCHS = 15
+    EPOCHS = 2000
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
         device,
         triplet=True,
-        preloaded_annotations="./train_pairs.json")
-    trainloader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, generator=th.Generator(device=device))
+        preloaded_annotations="./train_pairs_noh.json")
+    trainloader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, generator=th.Generator(device=device), drop_last=True)
+    #trainloader = DataLoader(trainset, batch_size=BATCH_SIZE, drop_last=True)
 
     print("Setting up models")
     text_encoder = TextEncoder(
@@ -68,25 +50,18 @@ def main():
         text_encoder.load_state_dict(th.load("./transformer_only_weights.pt"))
 
     image_encoder = SketchEncoder()
-    #image_encoder.load_state_dict(th.load("./checkpoints/sketch_encoder_weights_1.pt"))
+    image_encoder.load_state_dict(th.load("./sketch_encoder_weights_f100_noh.pt"))
     for params in image_encoder.vgg.parameters():
         params.requires_grad = True
 
-    #criterion = nn.CosineEmbeddingLoss(margin=0.5)
     criterion = nn.TripletMarginLoss(margin=1.0, p=2)
-    #dist = nn.PairwiseDistance(p=1, eps=1e-6)
-    #criterion = nn.HingeEmbeddingLoss(margin=1.0)
-    fast_optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-4)
-    slow_optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-4, weight_decay=1e-5)       # (1e-4, 1e-5) seemed okay but slow
+    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-3, weight_decay=5e-4, momentum=0.9)       # (1e-4, 1e-5) seemed okay but slow
+    #optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3)
+    scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=500, gamma=0.1)
 
     print("Starting training...")
+    loss_values = []
     for epoch in range(EPOCHS):  # loop over the dataset multiple times
-        if epoch < 5:
-            optimizer = fast_optimizer
-        else:
-            optimizer = slow_optimizer
-        #optimizer = slow_optimizer
-
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -134,17 +109,23 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if i % 200 == 199:    # print every 100 mini-batches
-                print(f'pos:[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.5f}')
+            if i % 3 == 2:    # print every 200 mini-batches
+                # not noh finished at 10452
+                print(f'[{epoch + 9001}, {i + 1:5d}] loss: {running_loss / 3:.5f}')
+                loss_values.append(running_loss / 3)
+                with open('loss_history.json', 'w') as f:
+                    json.dump(loss_values, f, indent=2)
                 running_loss = 0.0
-                th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_{epoch + 1}_{i}.pt')
-            else:
-                th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_{epoch + 1}.pt')
+                th.save(image_encoder.state_dict(), f'./checkpoints_noh/sketch_encoder_weights_f100_noh_{epoch + 9001}.pt')
+            #else:
+            #    th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_f100_{epoch + 1}.pt')
+
+        scheduler.step()
 
     print('Finished Training')
 
     print('Saving model...')
-    th.save(image_encoder.state_dict(), "./sketch_encoder_weights.pt")
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_f100_noh.pt")
 
 if __name__ == "__main__":
     main()
