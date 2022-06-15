@@ -12,9 +12,9 @@ class SketchDataset(Dataset):
         self.annotations_file = annotations_file
         self.preloaded_annotations = preloaded_annotations
         self.save_annotations = save_annotations
-        # try training only first 100 pairs
+        # try training only first 128 pairs
         self.id_pairs = self.load_annotations()
-        self.id_pairs = dict(list(self.id_pairs.items())[:100])
+        self.id_pairs = dict(list(self.id_pairs.items())[:128])
         self.negatives = negatives
         self.triplet = triplet
         self.device = device
@@ -85,7 +85,3 @@ class SketchDataset(Dataset):
         img = transforms.Resize(256)(img)
         img = img.repeat(3, 1, 1).to(device=self.device)
         return img
-
-# sketches = SketchDataset("./test_dir", "captions_val2017.json", 'cpu')
-# for image, label in sketches:
-#     print(image.shape)

@@ -8,8 +8,7 @@ import json
 
 from prepare_data import SketchDataset
 from sketch_text_contrast.text_encoder import TextEncoder
-from sketch_text_contrast.image_encoder import ImageEncoder, SketchEncoder
-from sketch_text_contrast.download import load_checkpoint
+from sketch_text_contrast.image_encoder import SketchEncoder
 
 num_channels = 192
 text_ctx = 128
@@ -27,7 +26,7 @@ def main():
     th.set_default_tensor_type('torch.cuda.FloatTensor')
 
     print("Setting up data")
-    BATCH_SIZE = 100
+    BATCH_SIZE = 128
     EPOCHS = 200
     trainset = SketchDataset("/srv/share/psangkloy3/coco/train2017_contour",
         "/srv/share/psangkloy3/coco/annotations/captions_train2017.json",
@@ -50,11 +49,12 @@ def main():
     if load_weights:
         text_encoder.load_state_dict(th.load("./transformer_only_weights.pt"))
 
-    image_encoder = SketchEncoder(resnet=True, trainable=True)
+    image_encoder = SketchEncoder(resnet=False, all_trainable=True)
     #image_encoder.load_state_dict(th.load("./sketch_encoder_weights_f100mse_noh.pt"))
 
     criterion = nn.MSELoss()
-    optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
+    #optimizer = th.optim.SGD(image_encoder.parameters(), lr=1e-1, weight_decay=5e-4, momentum=0.9)
+    optimizer = th.optim.Adam(image_encoder.parameters(), lr=1e-3, weight_decay=1e-5)
     scheduler = th.optim.lr_scheduler.StepLR(optimizer, step_size=75, gamma=0.1)
 
     print("Starting training...")
@@ -92,20 +92,20 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-            if True: #i % 3 == 2:    # print every 200 mini-batches
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 3:.5f}')
-                loss_values.append(running_loss / 3)
+            if True: #i % 3 == 2:    # print every 3 mini-batches
+                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss:.5f}')
+                loss_values.append(running_loss)
                 with open('loss_history.json', 'w') as f:
                     json.dump(loss_values, f, indent=2)
                 running_loss = 0.0
-                th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_f100mse_noh_{epoch + 1}.pt')
+                th.save(image_encoder.state_dict(), f'./checkpoints/sketch_encoder_weights_f100mse_{epoch + 1}.pt')
 
         scheduler.step()
 
     print('Finished Training')
 
     print('Saving model...')
-    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_resnet_f100mse_noh.pt")
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_newvgg_f100mse.pt")
 
 if __name__ == "__main__":
     main()
