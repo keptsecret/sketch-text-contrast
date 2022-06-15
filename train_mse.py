@@ -49,7 +49,7 @@ def main():
     if load_weights:
         text_encoder.load_state_dict(th.load("./transformer_only_weights.pt"))
 
-    image_encoder = SketchEncoder(resnet=False, all_trainable=True)
+    image_encoder = SketchEncoder(resnet=True, all_trainable=False)
     #image_encoder.load_state_dict(th.load("./sketch_encoder_weights_f100mse_noh.pt"))
 
     criterion = nn.MSELoss()
@@ -105,7 +105,7 @@ def main():
     print('Finished Training')
 
     print('Saving model...')
-    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_newvgg_f100mse.pt")
+    th.save(image_encoder.state_dict(), "./sketch_encoder_weights_newresnet_f100mse.pt")
 
 if __name__ == "__main__":
     main()

@@ -12,35 +12,49 @@ class SketchEncoder(nn.Module):
         self.mode = resnet
 
         if self.mode:
-            self.conv = models.resnet34(pretrained=True)
-            self.avgpool = self.conv.avgpool
+            self.conv = models.resnet50(pretrained=True)
+            # self.avgpool = self.conv.avgpool
 
-            # TODO: set to temporary empty refine list
-            more_conv = []
+            more_conv = [nn.Conv2d(1024, 1024, kernel_size=3, stride=1, padding='same'),
+                            nn.BatchNorm2d(1024),
+                            nn.ReLU(inplace=True),
+                            nn.Conv2d(1024, 512, kernel_size=3, stride=1, padding='same'),
+                            nn.BatchNorm2d(512),
+                            nn.ReLU(inplace=True),
+                            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
+                            nn.BatchNorm2d(512),
+                            nn.ReLU(inplace=True),
+                            nn.MaxPool2d(kernel_size=2, stride=2)]
 
-            linear = [nn.Linear(1,32),
-                        nn.ReLU(inplace=True),
-                        nn.Linear(32,64),
-                        nn.ReLU(inplace=True),
-                        nn.Linear(64,128)]
+            # linear = [nn.Linear(1,32),
+            #             nn.ReLU(inplace=True),
+            #             nn.Linear(32,64),
+            #             nn.ReLU(inplace=True),
+            #             nn.Linear(64,128)]
+
+            linear = [nn.Linear(256, 256),
+                        nn.ReLU(),
+                        nn.Linear(256, 128),
+                        nn.ReLU(),
+                        nn.Linear(128, 128),
+                        nn.ReLU(),
+                        nn.Linear(128, 128)]
+
         else:
             # take layers up to block4_conv1, instead
             vgg = models.vgg19(pretrained=True)
             self.conv = vgg.features[:21]
-            self.avgpool = vgg.avgpool
+            # self.avgpool = vgg.avgpool
 
             more_conv = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.ReLU(inplace=True),
-                            #nn.MaxPool2d(kernel_size=2, stride=2),
-                            #nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
-                            #nn.ReLU(inplace=True),
                             nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.ReLU(inplace=True),
                             nn.MaxPool2d(kernel_size=2, stride=2)]
 
-            #linear = [nn.Linear(49,64),
+            # linear = [nn.Linear(49,64),
             #            nn.ReLU(inplace=True),
             #            nn.Linear(64,64),
             #            nn.ReLU(inplace=True),
@@ -70,7 +84,7 @@ class SketchEncoder(nn.Module):
             x = self.conv.layer1(x)
             x = self.conv.layer2(x)
             x = self.conv.layer3(x)
-            conv_feats = self.conv.layer4(x)
+            conv_feats = self.refine_convs(x)
         else:
             x = self.conv(inputs)
             conv_feats = self.refine_convs(x)
