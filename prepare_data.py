@@ -12,7 +12,9 @@ class SketchDataset(Dataset):
         self.annotations_file = annotations_file
         self.preloaded_annotations = preloaded_annotations
         self.save_annotations = save_annotations
+        # try training only first 100 pairs
         self.id_pairs = self.load_annotations()
+        self.id_pairs = dict(list(self.id_pairs.items())[:100])
         self.negatives = negatives
         self.triplet = triplet
         self.device = device
@@ -20,7 +22,7 @@ class SketchDataset(Dataset):
     def __len__(self):
         return len(self.id_pairs.keys())
 
-    def __getitem__(self, index) -> tuple[th.Tensor, str]:
+    def __getitem__(self, index) -> tuple:
         id = list(self.id_pairs.keys())[index]
         image_path = os.path.join(self.img_dir, '{0:012d}.png'.format(int(id)))
         image = self.load_image(image_path)

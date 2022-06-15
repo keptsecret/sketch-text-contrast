@@ -45,7 +45,7 @@ class TextEncoder(nn.Module):
             self.final_ln = LayerNorm(xf_width)
         else:
             self.final_ln = None
-        
+
         self.token_embedding = nn.Embedding(self.tokenizer.n_vocab, xf_width, device=device)
         self.positional_embedding = nn.Parameter(th.empty(text_ctx, xf_width, dtype=th.float32, device=device))
         self.transformer_proj = nn.Linear(xf_width, self.model_channels * 4)
