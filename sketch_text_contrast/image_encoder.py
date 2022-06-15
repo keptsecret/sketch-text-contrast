@@ -2,27 +2,54 @@ import torch as th
 import torch.nn as nn
 
 import torchvision.models as models
-from .vqvae import Encoder, Decoder, VectorQuantizer
+from .vqvae import Encoder, VectorQuantizer
 
 class SketchEncoder(nn.Module):
 
-    def __init__(self, resnet=False, trainable=False):
+    def __init__(self, resnet=False, all_trainable=False):
 
         super(SketchEncoder,self).__init__()
         self.mode = resnet
 
         if self.mode:
             self.conv = models.resnet34(pretrained=True)
-            model = [nn.Linear(1,32), nn.ReLU(), nn.Linear(32,64), nn.ReLU(), nn.Linear(64,128)]
+            
+            # TODO: set to temporary empty refine list
+            more_conv = []
+
+            linear = [nn.Linear(1,32),
+                        nn.ReLU(inplace=True),
+                        nn.Linear(32,64),
+                        nn.ReLU(inplace=True),
+                        nn.Linear(64,128)]
         else:
-            self.conv = models.vgg19(pretrained=True)
-            model = [nn.Linear(49,64), nn.ReLU(), nn.Linear(64,64), nn.ReLU(), nn.Linear(64,128)]
+            # take layers up to block4_conv1, instead
+            vgg = models.vgg19(pretrained=True).features
+            self.conv = vgg[:21]
 
-        if trainable:
+            more_conv = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
+                            nn.ReLU(inplace=True),
+                            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
+                            nn.ReLU(inplace=True),
+                            nn.MaxPool2d(kernel_size=2, stride=2),
+                            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
+                            nn.ReLU(inplace=True),
+                            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
+                            nn.ReLU(inplace=True),
+                            nn.MaxPool2d(kernel_size=2, stride=2)]
+
+            linear = [nn.Linear(49,64),
+                        nn.ReLU(inplace=True),
+                        nn.Linear(64,64),
+                        nn.ReLU(inplace=True),
+                        nn.Linear(64,128)]
+
+        if all_trainable:
             for params in self.conv.parameters():
-                params.requires_grad = False
+                params.requires_grad = True
 
-        self.sketch_mapper = nn.Sequential(*model)
+        self.refine_convs = nn.Sequential(*more_conv)
+        self.sketch_mapper = nn.Sequential(*linear)
 
     def forward(self,inputs):
 
@@ -38,11 +65,13 @@ class SketchEncoder(nn.Module):
             x = self.conv.layer3(x)
             conv_feats = self.conv.layer4(x)
         else:
-            conv_feats = self.conv.features(inputs)
+            x = self.conv(inputs)
+            conv_feats = self.refine_convs(x)
 
         avg_pool_feats = self.conv.avgpool(conv_feats).view(batch_size, 512, -1)
+        outputs = self.sketch_mapper(avg_pool_feats)
 
-        return self.sketch_mapper(avg_pool_feats)
+        return outputs
 
 class VQSketchEncoder(nn.Module):
     def __init__(self,
