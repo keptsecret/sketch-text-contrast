@@ -15,7 +15,7 @@ class SketchEncoder(nn.Module):
             self.conv = models.resnet50(pretrained=True)
             # self.avgpool = self.conv.avgpool
 
-            more_conv = [nn.Conv2d(1024, 1024, kernel_size=3, stride=1, padding='same'),
+            more_conv = [nn.Conv2d(1024, 1024, kernel_size=5, stride=1, padding='same'),
                             nn.BatchNorm2d(1024),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(1024, 512, kernel_size=3, stride=1, padding='same'),
@@ -24,7 +24,7 @@ class SketchEncoder(nn.Module):
                             nn.Conv2d(512, 512, kernel_size=3, stride=1, padding='same'),
                             nn.BatchNorm2d(512),
                             nn.ReLU(inplace=True),
-                            nn.MaxPool2d(kernel_size=2, stride=2)]
+                            nn.MaxPool2d(kernel_size=2, stride=1)]
 
             # linear = [nn.Linear(1,32),
             #             nn.ReLU(inplace=True),
@@ -32,9 +32,9 @@ class SketchEncoder(nn.Module):
             #             nn.ReLU(inplace=True),
             #             nn.Linear(64,128)]
 
-            linear = [nn.Linear(256, 256),
+            linear = [nn.Linear(225, 225),
                         nn.ReLU(),
-                        nn.Linear(256, 128),
+                        nn.Linear(225, 128),
                         nn.ReLU(),
                         nn.Linear(128, 128),
                         nn.ReLU(),
@@ -91,8 +91,8 @@ class SketchEncoder(nn.Module):
 
         #avg_pool_feats = self.avgpool(conv_feats).view(batch_size, 512, -1)
         avg_pool_feats = conv_feats.view(batch_size, 512, -1)
-        std, mean = th.std_mean(avg_pool_feats, dim=(1,2), unbiased=False, keepdim=True)
-        avg_pool_feats = (avg_pool_feats - mean) / std
+        #std, mean = th.std_mean(avg_pool_feats, dim=(1,2), unbiased=False, keepdim=True)
+        #avg_pool_feats = (avg_pool_feats - mean) / std
         outputs = self.sketch_mapper(avg_pool_feats)
 
         return outputs
