@@ -14,7 +14,7 @@ class SketchDataset(Dataset):
         self.save_annotations = save_annotations
         # try training only first 100 pairs
         self.id_pairs = self.load_annotations()
-        self.id_pairs = dict(list(self.id_pairs.items())[:100])
+        #self.id_pairs = dict(list(self.id_pairs.items())[:100])
         self.negatives = negatives
         self.triplet = triplet
         self.device = device
